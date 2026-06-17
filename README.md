@@ -1,67 +1,63 @@
-### CrewAI — Safe-Mode Fork (with Valta Guardrails)
+# CrewAI — Safe-Mode Fork (with Valta Guardrails)
 
-> **Warning:** Standard AI agents run on an architectural "blank check." If an agent enters an infinite loop, hallucinates tool parameters, or gets stuck in a multi-agent recursive chain, it will drain your API accounts and credit cards before you notice.
+> **Warning:** Standard AI agents run on an architectural "blank check."
+> If an agent enters an infinite loop, hallucinates tool parameters, or
+> gets stuck in a multi-agent recursive chain, it will drain your API
+> accounts before you notice.
 
-This is a functional fork of the official CrewAI repository. It seamlessly injects **Valta** financial guardrails directly into the agent runtime loop.
+This is a functional fork of the official CrewAI tools repository.
+It documents how to inject **Valta** financial guardrails directly into
+your CrewAI agents — no rewriting your existing logic required.
 
-* * *
+---
 
-### 🛠️ What This Fork Does
+## 🛠️ What This Adds
 
-Instead of relying on LLM dashboards that track costs *after* they happen, this fork introduces an active execution firebreak:
+Instead of relying on LLM dashboards that show you the damage *after*
+it happens, Valta adds an active spending gate:
 
-*   **Pre-Action Interception:** Valta intercepts agent tool execution and LLM calls *before* they fire.
-*   **Hard Dollar Ceilings:** Set a strict limit (e.g., $5.00). If a rogue loop tries to cross it, the runtime blocks instantly.
-*   **Cross-Provider Tracking:** Tracks combined financial data across OpenAI, Anthropic, Vector DBs, and external tools simultaneously.
+- **Pre-Action Interception:** The agent checks its budget *before*
+  any paid tool call fires — not after.
+- **Hard Dollar Ceilings:** Set a strict limit per agent (e.g. $5.00)
+  in your Valta dashboard. If a rogue loop tries to cross it, the call
+  is blocked instantly.
+- **Per-Agent Isolation:** One agent hitting its limit does not affect
+  your other agents. Each has its own identity and budget.
 
-* * *
+---
 
-### ⚡ Quick Start
+## ⚡ Quick Start
 
-### 1\. Install Valta
+### 1. Install
 
-bash
+```bash
+pip install crewai-valta
+```
 
-    pip install valta
-    
+### 2. Add the spend guard to your agent
 
-Use code with caution.
+You do not need to rewrite your CrewAI logic. Just add `ValtaSpendTool`
+to your agent's tools list:
 
-### 2\. Configure Your Safe Agent
+```python
+from crewai import Agent
+from crewai_valta import ValtaSpendTool
 
-You do not need to rewrite your CrewAI logic. Just pass a Valta budget configuration directly into your agent:
+guard = ValtaSpendTool(
+    api_key="vk_live_...",
+    agent_id="research-agent",
+)
 
-python
+researcher = Agent(
+    role="Market Researcher",
+    goal="Deep dive into industry metrics",
+    backstory="An autonomous research bot",
+    verbose=True,
+    tools=[guard],
+)
+```
 
-    from crewai import Agent
-    import valta
-    
-    # Initialize a strict $5.00 budget ceiling for this agent's lifetime
-    safe_budget = valta.Budget(
-        hard_limit_usd=5.00,
-        api_key="vt_live_..."
-    )
-    
-    research_agent = Agent(
-        role='Market Researcher',
-        goal='Deep dive into industry metrics',
-        backstory='An autonomous research bot',
-        verbose=True,
-        budget=safe_budget # Valta intercepts loops right here
-    )
-    
+### 3. Set your hard limit
 
-Use code with caution.
-
-* * *
-
-### 🔒 Security & Privacy
-
-Valta does not read your prompts or outputs. It only tracks metadata token counts, execution frequency, and financial state to enforce your programmatic budgets.
-
-*To get your free API key and view your live agent financial dashboard, visit valta.co.*
-
-* * *
-
-*(Original CrewAI documentation continues below)*  
-...
+Go to **valta.co/dashboard** → set a dollar ceiling for `research-agent`.
+That limit is enforced server-side — the model cannot override it.
